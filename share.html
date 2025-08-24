@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享的收藏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .share-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .share-info h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .share-info .description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .share-meta {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+        
+        .item-card {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .item-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .item-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .item-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .item-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-url {
+            font-size: 13px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .item-description {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: #dc3545;
+        }
+        
+        .error h3 {
+            margin-bottom: 10px;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .items-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .share-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 收藏分享</h1>
+            <div class="subtitle">发现精彩的网站收藏</div>
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading">
+                <div>📡 正在加载分享内容...</div>
+            </div>
+            
+            <div id="error" class="error" style="display: none;">
+                <h3>😔 加载失败</h3>
+                <div id="error-message"></div>
+            </div>
+            
+            <div id="share-content" style="display: none;">
+                <div class="share-info">
+                    <h2 id="share-title"></h2>
+                    <div id="share-description" class="description"></div>
+                    <div class="share-meta">
+                        <div>👤 分享者：<span id="share-creator"></span></div>
+                        <div>📅 创建时间：<span id="share-date"></span></div>
+                        <div>📊 共 <span id="items-count"></span> 个网站</div>
+                    </div>
+                </div>
+                
+                <div id="items-container" class="items-grid">
+                    <!-- 收藏项目将在这里显示 -->
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div>由 <strong>夏DJ导航站</strong> 驱动 | 发现更多精彩收藏</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从URL中获取分享ID
+        const shareId = window.location.pathname.split('/').pop();
+        
+        // 加载分享内容
+        async function loadShareContent() {
+            try {
+                const response = await fetch(`/api/shares/${shareId}`);
+                
+                if (!response.ok) {
+                    throw new Error('分享不存在或已失效');
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || '加载失败');
+                }
+                
+                displayShareContent(data.share, data.items);
+                
+            } catch (error) {
+                console.error('加载分享失败:', error);
+                showError(error.message);
+            }
+        }
+        
+        // 显示分享内容
+        function displayShareContent(share, items) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('share-content').style.display = 'block';
+            
+            // 更新页面标题
+            document.title = `${share.title} - 分享的收藏`;
+            
+            // 填充分享信息
+            document.getElementById('share-title').textContent = share.title;
+            document.getElementById('share-description').textContent = share.description || '暂无描述';
+            document.getElementById('share-creator').textContent = share.creator.displayName;
+            document.getElementById('share-date').textContent = new Date(share.createdAt).toLocaleDateString('zh-CN');
+            document.getElementById('items-count').textContent = share.itemCount;
+            
+            // 渲染收藏项目
+            const container = document.getElementById('items-container');
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty">😅 这个分享暂时没有内容</div>';
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="item-card" onclick="openUrl('${item.url}')">
+                    <div class="item-content">
+                        <img src="${item.icon || getDefaultIcon()}" 
+                             alt="${item.title}" 
+                             class="item-icon"
+                             onerror="this.src='${getDefaultIcon()}'">
+                        <div class="item-info">
+                            <div class="item-title">${item.title}</div>
+                            <div class="item-url">${item.url}</div>
+                            ${item.description ? `<div class="item-description">${item.description}</div>` : ''}
+                            ${item.category ? `<div class="category-tag">${item.category}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 显示错误信息
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+        
+        // 打开URL
+        function openUrl(url) {
+            window.open(url, '_blank');
+        }
+        
+        // 获取默认图标
+        function getDefaultIcon() {
+            return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iI0Y3RjdGNyIvPgo8cGF0aCBkPSJNMTIgMThIMzZWMjBIMTJWMThaTTEyIDI0SDM2VjI2SDEyVjI0WiIgZmlsbD0iI0NDQ0NDQyIvPgo8L3N2Zz4K';
+        }
+        
+        // 页面加载完成后开始加载内容
+        window.addEventListener('load', loadShareContent);
+    </script>
+</body>
+</html>

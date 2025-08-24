@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑收藏问题诊断</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .log { background: #f0f0f0; padding: 10px; border-radius: 5px; height: 300px; overflow-y: auto; margin-top: 10px; }
+        .button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🔍 编辑收藏问题诊断工具</h1>
+    
+    <div class="section">
+        <h3>1. 检查登录状态</h3>
+        <button class="button" onclick="checkLoginStatus()">检查认证令牌</button>
+        <div id="login-status" class="log">等待检查...</div>
+    </div>
+
+    <div class="section">
+        <h3>2. 获取收藏列表</h3>
+        <button class="button" onclick="loadFavorites()">加载收藏数据</button>
+        <div id="favorites-list" class="log"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. 验证收藏ID格式</h3>
+        <input type="text" id="favorite-id" placeholder="输入收藏ID或选择一个收藏" style="width: 70%;">
+        <button class="button" onclick="validateFavoriteId()">验证ID格式</button>
+        <div id="id-validation" class="log"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. 手动测试编辑请求</h3>
+        <select id="favorite-select" style="width: 100%; margin-bottom: 10px;"></select>
+        <input type="text" id="new-title" placeholder="新的标题" style="width: 100%; margin-bottom: 10px;">
+        <input type="text" id="new-url" placeholder="新的URL" style="width: 100%; margin-bottom: 10px;">
+        <textarea id="new-desc" placeholder="新的描述" style="width: 100%; height: 60px;"></textarea>
+        <button class="button" onclick="testEditFavorite()">测试编辑收藏</button>
+        <div id="edit-result" class="log"></div>
+    </div>
+
+    <script>
+        // 收藏列表
+        let favorites = [];
+        
+        // 检查登录状态
+        async function checkLoginStatus() {
+            const log = document.getElementById('login-status');
+            log.innerHTML = '🔍 正在检查登录状态...\n';
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                log.innerHTML += '<span class="error">❌ 未找到认证令牌</span>';
+                return false;
+            }
+            
+            try {
+                // 解析JWT令牌
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                log.innerHTML += `✅ 找到认证令牌\n`;
+                log.innerHTML += `👤 用户ID: ${payload.userId}\n`;
+                log.innerHTML += `⏱️ 到期时间: ${new Date(payload.exp * 1000).toLocaleString()}\n`;
+                
+                // 检查令牌是否过期
+                if (payload.exp * 1000 < Date.now()) {
+                    log.innerHTML += '<span class="error">❌ 认证令牌已过期</span>';
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                log.innerHTML += `<span class="error">❌ 令牌解析失败: ${error.message}</span>`;
+                return false;
+            }
+        }
+        
+        // 加载收藏列表
+        async function loadFavorites() {
+            const status = await checkLoginStatus();
+            if (!status) return;
+            
+            const token = localStorage.getItem('neon_auth_token');
+            const log = document.getElementById('favorites-list');
+            log.innerHTML = '🔄 正在加载收藏列表...\n';
+            
+            try {
+                const response = await fetch('/api/favorites', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log.innerHTML += `📡 API响应状态: ${response.status} ${response.statusText}\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        favorites = data.favorites;
+                        log.innerHTML += `✅ 成功加载 ${favorites.length} 个收藏\n`;
+                        
+                        // 更新下拉框
+                        const select = document.getElementById('favorite-select');
+                        select.innerHTML = '<option value="">-- 选择一个收藏 --</option>';
+                        
+                        favorites.forEach(fav => {
+                            const option = document.createElement('option');
+                            option.value = fav.id;
+                            option.textContent = `${fav.title} (${fav.id})`;
+                            select.appendChild(option);
+                        });
+                        
+                        return true;
+                    } else {
+                        log.innerHTML += `<span class="error">❌ 获取收藏失败: ${data.error}</span>`;
+                        return false;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log.innerHTML += `<span class="error">❌ API请求失败: ${response.status} ${response.statusText}\n${errorText}</span>`;
+                    return false;
+                }
+            } catch (error) {
+                log.innerHTML += `<span class="error">❌ 网络错误: ${error.message}</span>`;
+                return false;
+            }
+        }
+        
+        // 验证收藏ID格式
+        function validateFavoriteId() {
+            const id = document.getElementById('favorite-id').value.trim();
+            const log = document.getElementById('id-validation');
+            log.innerHTML = `🔍 正在验证收藏ID: ${id}\n`;
+            
+            // UUID正则表达式
+            const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+            
+            if (!id) {
+                log.innerHTML += '<span class="error">❌ 未输入收藏ID</span>';
+                return;
+            }
+            
+            if (uuidRegex.test(id)) {
+                log.innerHTML += `<span class="success">✅ 有效的UUID格式: ${id}</span>`;
+            } else {
+                log.innerHTML += `<span class="error">❌ 无效的UUID格式: ${id}</span>`;
+                log.innerHTML += '\n⚠️ 有效格式示例: 455eb3e6-7faf-4e27-befb-13f20905ece6';
+            }
+        }
+        
+        // 测试编辑收藏
+        async function testEditFavorite() {
+            const select = document.getElementById('favorite-select');
+            const favoriteId = select.value;
+            const log = document.getElementById('edit-result');
+            
+            if (!favoriteId) {
+                log.innerHTML = '<span class="error">❌ 请选择一个收藏或手动输入收藏ID</span>';
+                return;
+            }
+            
+            const title = document.getElementById('new-title').value.trim();
+            const url = document.getElementById('new-url').value.trim();
+            const desc = document.getElementById('new-desc').value.trim();
+            
+            if (!title || !url) {
+                log.innerHTML = '<span class="error">❌ 标题和URL不能为空</span>';
+                return;
+            }
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                log.innerHTML = '<span class="error">❌ 用户未登录</span>';
+                return;
+            }
+            
+            log.innerHTML = `🔄 正在测试编辑收藏: ${favoriteId}\n`;
+            
+            try {
+                const response = await fetch(`/api/favorites/${favoriteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        url,
+                        description: desc
+                    })
+                });
+                
+                log.innerHTML += `📡 响应状态: ${response.status} ${response.statusText}\n`;
+                
+                const responseText = await response.text();
+                try {
+                    const data = JSON.parse(responseText);
+                    log.innerHTML += `📝 响应内容: ${JSON.stringify(data, null, 2)}\n`;
+                } catch (parseError) {
+                    log.innerHTML += `📝 响应内容: ${responseText}\n`;
+                }
+                
+                if (response.ok) {
+                    log.innerHTML += '<span class="success">✅ 编辑成功</span>';
+                } else {
+                    log.innerHTML += '<span class="error">❌ 编辑失败</span>';
+                }
+            } catch (error) {
+                log.innerHTML += `<span class="error">❌ 网络错误: ${error.message}</span>`;
+            }
+        }
+        
+        // 页面加载时自动检查登录状态
+        window.addEventListener('load', async () => {
+            await checkLoginStatus();
+        });
+    </script>
+</body>
+</html>

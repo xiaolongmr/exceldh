@@ -1,0 +1,65 @@
+<div id=gototop>
+    <svg class='Zi Zi--BackToTop' title=回到顶部 fill=currentColor viewbox='0 0 24 24' width=24 height=24>
+    <path
+        d='M16.036 19.59a1 1 0 0 1-.997.995H9.032a.996.996 0 0 1-.997-.996v-7.005H5.03c-1.1 0-1.36-.633-.578-1.416L11.33 4.29a1.003 1.003 0 0 1 1.412 0l6.878 6.88c.782.78.523 1.415-.58 1.415h-3.004v7.005z'>
+    </path>
+</svg>
+    </div >
+    <script>
+        // 定义函数：判断宽度并设置左侧边栏的位置
+        function judgeWidth() {
+            // 如果视口宽度大于481px，则将左侧边栏的left值设为0，否则设为'-249px'
+            oLeftBar.style.left = 481 < document.documentElement.clientWidth ? 0 : '-249px';
+        }
+
+        // 获取元素对象
+        var oMenu = document.getElementById('menu');  // 菜单按钮
+        var oLeftBar = document.getElementById('leftBar');  // 左侧边栏
+        var menuFrom = document.getElementById('menu-form');  // 菜单表单
+
+        // 点击菜单按钮时触发的事件
+        oMenu.onclick = function () {
+            // 如果左侧边栏的left值为0，则将其设为'-249px'，否则设为0
+            oLeftBar.style.left = 0 == oLeftBar.offsetLeft ? '-249px' : 0;
+        };
+
+        // 窗口大小改变时触发的事件
+        window.onresize = function () {
+            judgeWidth();  // 调用判断宽度的函数
+        };
+
+        // 遍历导航项并设置点击事件
+        var oNavItem = document.getElementById('navItem');  // 导航项容器
+        var aA = oNavItem.getElementsByTagName('a');  // 导航链接数组
+        for (var i = 0; i < aA.length; i++) {
+            // 点击导航链接时触发的事件
+            aA[i].onclick = function () {
+                // 移除所有导航链接的类名
+                for (var e = 0; e < aA.length; e++) {
+                    aA[e].className = '';
+                }
+                // 为当前点击的导航链接添加类名'active'
+                this.className = 'active';
+
+                // 如果左侧边栏的left值为0，并且视口宽度小于等于481px，则将其设为'-249px'，同时取消菜单表单的选中状态
+                if (0 == oLeftBar.offsetLeft && document.documentElement.clientWidth <= 481) {
+                    oLeftBar.style.left = '-249px';
+                    menuFrom.checked = false;
+                }
+            };
+        }
+
+        // 滚动窗口时触发的事件
+        $(window).scroll(function () {
+            // 如果滚动距离大于等于200px，则淡入"回到顶部"按钮，否则淡出
+            200 <= $(window).scrollTop() ? $('#gototop').fadeIn(300) : $('#gototop').fadeOut(300);
+        });
+
+        // 点击"回到顶部"按钮时触发的事件
+        $('#gototop').click(function () {
+            // 使用动画效果将页面滚动至顶部
+            $('html,body').animate({
+                scrollTop: '0px'
+            }, 800);
+        });
+    </script>

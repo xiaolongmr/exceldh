@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>删除功能验证</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .console-log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .delete-button {
+            background: #dc3545;
+        }
+        .delete-button:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🗑️ 删除功能验证页面</h1>
+        
+        <div class="test-section success">
+            <h3>✅ 修复内容</h3>
+            <ul>
+                <li><strong>UUID路由匹配</strong> - 修复UUID正则表达式匹配问题</li>
+                <li><strong>响应方法修复</strong> - 使用原生Node.js响应方法替代Express风格</li>
+                <li><strong>详细日志记录</strong> - 增加删除过程的详细日志</li>
+                <li><strong>错误处理增强</strong> - 改进错误提示和状态码</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 问题诊断</h3>
+            <p><strong>原始错误：</strong></p>
+            <div class="console-log">
+DELETE http://localhost:3000/api/favorites/6dc4f3a4-c716-43f3-9a37-bd53b44696a0 404 (Not Found)
+❗ API请求失败: 404 {"success":false,"error":"API endpoint not found","details":null}
+            </div>
+            
+            <p><strong>问题原因：</strong></p>
+            <ul>
+                <li>UUID正则表达式匹配失败</li>
+                <li>响应对象方法不兼容</li>
+                <li>路由处理逻辑有缺陷</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 测试删除功能</h3>
+            <button class="test-button" onclick="testUUIDMatching()">测试UUID匹配</button>
+            <button class="test-button" onclick="checkLoginStatus()">检查登录状态</button>
+            <button class="test-button delete-button" onclick="simulateDelete()">模拟删除请求</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 实时日志</h3>
+            <div id="console-output" class="console-log">
+                <div>等待测试开始...</div>
+            </div>
+            <button class="test-button" onclick="clearLogs()">清空日志</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 验证步骤</h3>
+            <ol>
+                <li>确保服务器已重新启动并加载修复后的代码</li>
+                <li>登录您的账户</li>
+                <li>进入编辑模式（点击⚙️编辑按钮）</li>
+                <li>尝试删除一个收藏项目（点击×按钮）</li>
+                <li>检查是否显示成功提示并刷新列表</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        console.log('🗑️ 删除功能验证页面已加载');
+        
+        let logs = [];
+        
+        // 捕获控制台日志
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logToDisplay('LOG', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logToDisplay('ERROR', args.join(' '));
+        };
+        
+        function logToDisplay(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type}: ${message}`;
+            logs.push(logEntry);
+            
+            const output = document.getElementById('console-output');
+            if (output) {
+                output.innerHTML += `<div style="color: ${type === 'ERROR' ? 'red' : 'black'}">${logEntry}</div>`;
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+        
+        // 测试UUID匹配
+        function testUUIDMatching() {
+            console.log('🧪 测试UUID匹配功能');
+            
+            const testUUIDs = [
+                '6dc4f3a4-c716-43f3-9a37-bd53b44696a0',
+                'cd38f3a5-b687-410c-83cb-def7f86ca195',
+                'invalid-uuid',
+                '123e4567-e89b-12d3-a456-426614174000'
+            ];
+            
+            const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+            
+            testUUIDs.forEach(uuid => {
+                const isValid = uuidRegex.test(uuid);
+                console.log(`UUID: ${uuid} -> 匹配: ${isValid ? '✅' : '❌'}`);
+            });
+        }
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            console.log('🧪 检查登录状态');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (token) {
+                console.log('✅ 找到认证令牌');
+                
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    console.log('👤 用户信息:', payload);
+                } catch (e) {
+                    console.error('❌ 令牌解析失败:', e.message);
+                }
+            } else {
+                console.error('❌ 未找到认证令牌，请先登录');
+            }
+        }
+        
+        // 模拟删除请求
+        async function simulateDelete() {
+            console.log('🧪 模拟删除请求');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                console.error('❌ 用户未登录，无法测试删除功能');
+                return;
+            }
+            
+            // 使用一个测试UUID
+            const testUUID = '6dc4f3a4-c716-43f3-9a37-bd53b44696a0';
+            console.log(`🎯 测试删除UUID: ${testUUID}`);
+            
+            try {
+                const response = await fetch(`/api/favorites/${testUUID}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`📞 API响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ 删除请求成功:', data);
+                } else {
+                    const errorData = await response.json();
+                    console.log(`❌ 删除请求失败:`, errorData);
+                    
+                    if (response.status === 404) {
+                        console.log('ℹ️ 这是正常的，因为测试UUID可能不存在');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 网络错误:', error.message);
+            }
+        }
+        
+        function clearLogs() {
+            const output = document.getElementById('console-output');
+            if (output) {
+                output.innerHTML = '<div>日志已清空...</div>';
+                logs = [];
+            }
+        }
+        
+        // 页面加载时自动运行测试
+        window.addEventListener('load', () => {
+            console.log('🚀 删除功能验证页面准备就绪');
+            
+            setTimeout(() => {
+                testUUIDMatching();
+                checkLoginStatus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

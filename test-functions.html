@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏功能测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .test-log { max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 收藏功能测试页面</h1>
+    <p>这个页面用于验证所有收藏相关函数是否正确定义。</p>
+    
+    <div id="test-results"></div>
+    <div class="test-log" id="test-log"></div>
+    
+    <button onclick="runTests()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">🚀 运行测试</button>
+    
+    <!-- 引入收藏脚本 -->
+    <script src="js/simple-favorites.js"></script>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('test-log');
+            logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function createTestItem(testName, success, message) {
+            const resultsDiv = document.getElementById('test-results');
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-item ${success ? 'success' : 'error'}`;
+            testDiv.innerHTML = `
+                <strong>${success ? '✅' : '❌'} ${testName}</strong><br>
+                <small>${message}</small>
+            `;
+            resultsDiv.appendChild(testDiv);
+        }
+        
+        function testFunction(functionName, expectedType = 'function') {
+            const func = window[functionName];
+            const exists = typeof func === expectedType;
+            const message = exists ? 
+                `${functionName} 函数已正确定义` : 
+                `${functionName} 函数不存在或类型错误 (实际类型: ${typeof func})`;
+            
+            createTestItem(`测试 ${functionName}`, exists, message);
+            log(message);
+            return exists;
+        }
+        
+        function runTests() {
+            log('🔥 开始运行收藏功能测试...');
+            document.getElementById('test-results').innerHTML = '';
+            
+            // 测试基础收藏功能
+            const basicFunctions = [
+                'loadFavsFromCloud',
+                'renderFavs', 
+                'addFavToCloud',
+                'removeFav',
+                'submitFavForm',
+                'openFavForm',
+                'closeFavForm',
+                'editFavorite',
+                'toggleCustomMode'
+            ];
+            
+            // 测试扩展功能
+            const advancedFunctions = [
+                'loadFavoriteGroups',
+                'createFavoriteGroup', 
+                'createFavoriteShare',
+                'initIconUploadFeature',
+                'toggleSelectionMode',
+                'copyToClipboard'
+            ];
+            
+            // 测试调试功能
+            const debugFunctions = [
+                'forceShowFavorites',
+                'diagnoseFavorites',
+                'triggerFavoritesLoad'
+            ];
+            
+            let totalTests = 0;
+            let passedTests = 0;
+            
+            log('📋 测试基础收藏功能...');
+            basicFunctions.forEach(funcName => {
+                totalTests++;
+                if (testFunction(funcName)) passedTests++;
+            });
+            
+            log('🚀 测试扩展功能...');
+            advancedFunctions.forEach(funcName => {
+                totalTests++;
+                if (testFunction(funcName)) passedTests++;
+            });
+            
+            log('🛠️ 测试调试功能...');
+            debugFunctions.forEach(funcName => {
+                totalTests++;
+                if (testFunction(funcName)) passedTests++;
+            });
+            
+            // 测试全局变量
+            log('🔍 测试全局变量...');
+            const globalVars = [
+                ['currentFavorites', 'object'],
+                ['isSelectionMode', 'boolean'],
+                ['selectedFavorites', 'object']
+            ];
+            
+            globalVars.forEach(([varName, expectedType]) => {
+                totalTests++;
+                const exists = typeof window[varName] === expectedType;
+                const message = exists ? 
+                    `全局变量 ${varName} 已正确定义 (类型: ${expectedType})` : 
+                    `全局变量 ${varName} 不存在或类型错误 (实际类型: ${typeof window[varName]})`;
+                
+                createTestItem(`全局变量 ${varName}`, exists, message);
+                log(message);
+                if (exists) passedTests++;
+            });
+            
+            // 测试总结
+            const successRate = Math.round((passedTests / totalTests) * 100);
+            const summaryMessage = `测试完成！通过率: ${passedTests}/${totalTests} (${successRate}%)`;
+            
+            log(`🎉 ${summaryMessage}`);
+            
+            // 添加总结条目
+            createTestItem('测试总结', successRate === 100, summaryMessage);
+            
+            if (successRate === 100) {
+                log('✅ 所有收藏功能都已正确实现！');
+            } else {
+                log('⚠️ 部分功能可能缺失，请检查相关脚本引用。');
+            }
+        }
+        
+        // 页面加载后自动运行测试
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>

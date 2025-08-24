@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新链接失败诊断</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .console-log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .update-button {
+            background: #28a745;
+        }
+        .update-button:hover {
+            background: #218838;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 更新链接失败诊断页面</h1>
+        
+        <div class="test-section error">
+            <h3>❌ 问题描述</h3>
+            <p><strong>用户反馈：</strong>更新链接失败，显示"没有找到收藏项目"</p>
+            <p><strong>可能原因：</strong></p>
+            <ul>
+                <li>UUID格式不正确或参数传递错误</li>
+                <li>用户认证失败或权限问题</li>
+                <li>数据库查询条件不匹配</li>
+                <li>收藏项目确实不存在或属于其他用户</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 系统诊断</h3>
+            <button class="test-button" onclick="checkLoginStatus()">检查登录状态</button>
+            <button class="test-button" onclick="loadFavoritesList()">获取收藏列表</button>
+            <button class="test-button" onclick="checkDatabaseConnection()">测试数据库连接</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 模拟更新测试</h3>
+            <div class="form-group">
+                <label>选择要测试的收藏：</label>
+                <select id="favorite-select" onchange="populateUpdateForm()">
+                    <option value="">-- 请先加载收藏列表 --</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>标题：</label>
+                <input type="text" id="test-title" placeholder="输入新的标题">
+            </div>
+            
+            <div class="form-group">
+                <label>URL：</label>
+                <input type="text" id="test-url" placeholder="输入新的URL">
+            </div>
+            
+            <div class="form-group">
+                <label>描述：</label>
+                <textarea id="test-desc" rows="3" placeholder="输入新的描述"></textarea>
+            </div>
+            
+            <button class="test-button update-button" onclick="testUpdateFavorite()">测试更新收藏</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 诊断日志</h3>
+            <div id="console-output" class="console-log">
+                等待诊断开始...
+            </div>
+            <button class="test-button" onclick="clearLogs()">清空日志</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔧 更新链接失败诊断页面已加载');
+        
+        let favoritesList = [];
+        let logs = [];
+        
+        // 捕获控制台日志
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logToDisplay('LOG', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logToDisplay('ERROR', args.join(' '));
+        };
+        
+        function logToDisplay(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type}: ${message}`;
+            logs.push(logEntry);
+            
+            const output = document.getElementById('console-output');
+            if (output) {
+                output.innerHTML += `<div style="color: ${type === 'ERROR' ? 'red' : 'black'}">${logEntry}</div>`;
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+        
+        // 检查登录状态
+        async function checkLoginStatus() {
+            console.log('🔍 检查用户登录状态...');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                console.error('❌ 未找到认证令牌，用户未登录');
+                return false;
+            }
+            
+            console.log('✅ 找到认证令牌');
+            
+            try {
+                // 解析JWT令牌
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('👤 用户信息:', {
+                    userId: payload.userId,
+                    username: payload.username,
+                    exp: new Date(payload.exp * 1000).toLocaleString()
+                });
+                
+                // 检查令牌是否过期
+                if (payload.exp * 1000 < Date.now()) {
+                    console.error('❌ 认证令牌已过期');
+                    return false;
+                }
+                
+                console.log('✅ 认证令牌有效');
+                return true;
+            } catch (error) {
+                console.error('❌ 令牌解析失败:', error.message);
+                return false;
+            }
+        }
+        
+        // 加载收藏列表
+        async function loadFavoritesList() {
+            console.log('📋 正在加载收藏列表...');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                console.error('❌ 用户未登录，无法加载收藏');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/favorites', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('📡 API响应状态:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        favoritesList = data.favorites;
+                        console.log(`✅ 成功加载 ${favoritesList.length} 个收藏`);
+                        
+                        // 更新选择框
+                        const select = document.getElementById('favorite-select');
+                        select.innerHTML = '<option value="">-- 选择要测试的收藏 --</option>';
+                        
+                        favoritesList.forEach(fav => {
+                            const option = document.createElement('option');
+                            option.value = fav.id;
+                            option.textContent = `${fav.title} (${fav.id})`;
+                            select.appendChild(option);
+                        });
+                        
+                        return true;
+                    } else {
+                        console.error('❌ 获取收藏失败:', data.error);
+                        return false;
+                    }
+                } else {
+                    console.error('❌ API请求失败:', response.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ 网络错误:', error.message);
+                return false;
+            }
+        }
+        
+        // 填充更新表单
+        function populateUpdateForm() {
+            const select = document.getElementById('favorite-select');
+            const selectedId = select.value;
+            
+            if (!selectedId) return;
+            
+            const favorite = favoritesList.find(f => f.id === selectedId);
+            if (favorite) {
+                document.getElementById('test-title').value = favorite.title || '';
+                document.getElementById('test-url').value = favorite.url || '';
+                document.getElementById('test-desc').value = favorite.description || '';
+                
+                console.log('📝 已填充测试表单:', {
+                    id: favorite.id,
+                    title: favorite.title,
+                    url: favorite.url
+                });
+            }
+        }
+        
+        // 测试更新收藏
+        async function testUpdateFavorite() {
+            const select = document.getElementById('favorite-select');
+            const favoriteId = select.value;
+            
+            if (!favoriteId) {
+                console.error('❌ 请先选择要测试的收藏');
+                return;
+            }
+            
+            const title = document.getElementById('test-title').value.trim();
+            const url = document.getElementById('test-url').value.trim();
+            const desc = document.getElementById('test-desc').value.trim();
+            
+            if (!title || !url) {
+                console.error('❌ 标题和URL不能为空');
+                return;
+            }
+            
+            console.log('🧪 开始测试更新收藏...');
+            console.log('📝 测试数据:', {
+                favoriteId,
+                title,
+                url,
+                description: desc
+            });
+            
+            // 验证UUID格式
+            const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+            if (!uuidRegex.test(favoriteId)) {
+                console.error('❌ 无效的UUID格式:', favoriteId);
+                return;
+            }
+            
+            console.log('✅ UUID格式验证通过');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                console.error('❌ 用户未登录');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/favorites/${favoriteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        url,
+                        description: desc
+                    })
+                });
+                
+                console.log('📡 API响应状态:', response.status);
+                console.log('📡 API响应头:', Object.fromEntries(response.headers.entries()));
+                
+                const responseText = await response.text();
+                console.log('📡 API响应内容:', responseText);
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        console.log('✅ 更新成功:', data);
+                    } catch (parseError) {
+                        console.log('✅ 更新成功，但响应不是JSON格式');
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        console.error('❌ 更新失败:', errorData);
+                    } catch (parseError) {
+                        console.error('❌ 更新失败，响应内容:', responseText);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 网络错误:', error.message);
+            }
+        }
+        
+        // 检查数据库连接
+        async function checkDatabaseConnection() {
+            console.log('🔍 检查数据库连接状态...');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                console.error('❌ 用户未登录，无法测试数据库连接');
+                return;
+            }
+            
+            // 通过获取收藏列表来间接测试数据库连接
+            try {
+                const response = await fetch('/api/favorites', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    console.log('✅ 数据库连接正常');
+                } else {
+                    console.error('❌ 数据库连接可能有问题，状态码:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ 数据库连接测试失败:', error.message);
+            }
+        }
+        
+        function clearLogs() {
+            const output = document.getElementById('console-output');
+            if (output) {
+                output.innerHTML = '日志已清空...';
+                logs = [];
+            }
+        }
+        
+        // 页面加载时自动检查状态
+        window.addEventListener('load', () => {
+            console.log('🚀 诊断页面准备就绪');
+            
+            setTimeout(async () => {
+                await checkLoginStatus();
+                setTimeout(() => {
+                    loadFavoritesList();
+                }, 1000);
+            }, 500);
+        });
+    </script>
+</body>
+</html>

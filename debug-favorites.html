@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏功能调试 - Debug Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+        }
+        
+        .status-item.success {
+            border-left-color: #28a745;
+        }
+        
+        .status-item.error {
+            border-left-color: #dc3545;
+        }
+        
+        .status-item.warning {
+            border-left-color: #ffc107;
+        }
+        
+        .status-item h4 {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .status-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .console {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        
+        .favorite-demo {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .fav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .fav-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            margin-right: 12px;
+        }
+        
+        .fav-content {
+            flex: 1;
+        }
+        
+        .fav-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .fav-url {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 收藏功能调试中心</h1>
+            <p>诊断和修复收藏功能加载问题</p>
+        </div>
+        
+        <div class="content">
+            <!-- 系统状态 -->
+            <div class="section">
+                <h3>🔍 系统状态检查</h3>
+                <div class="status-grid">
+                    <div class="status-item" id="auth-status">
+                        <h4>认证状态</h4>
+                        <div class="value">检查中...</div>
+                    </div>
+                    <div class="status-item" id="api-status">
+                        <h4>API服务</h4>
+                        <div class="value">检查中...</div>
+                    </div>
+                    <div class="status-item" id="db-status">
+                        <h4>数据库连接</h4>
+                        <div class="value">检查中...</div>
+                    </div>
+                    <div class="status-item" id="modules-status">
+                        <h4>模块加载</h4>
+                        <div class="value">检查中...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 功能测试 -->
+            <div class="section">
+                <h3>🧪 功能测试</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="testLoadFavorites()">📋 测试加载收藏</button>
+                    <button class="btn" onclick="testAddFavorite()">➕ 测试添加收藏</button>
+                    <button class="btn" onclick="testDeleteFavorite()">🗑️ 测试删除收藏</button>
+                    <button class="btn secondary" onclick="forceReloadFavorites()">🔄 强制重载</button>
+                    <button class="btn success" onclick="fixAllProblems()">🔧 一键修复</button>
+                </div>
+            </div>
+            
+            <!-- 模块诊断 -->
+            <div class="section">
+                <h3>📊 模块诊断</h3>
+                <div id="module-diagnosis">正在诊断...</div>
+            </div>
+            
+            <!-- 收藏演示 -->
+            <div class="section">
+                <h3>📋 收藏功能演示</h3>
+                <div id="favorites-demo" class="favorite-demo">
+                    <div id="fav-list">
+                        <!-- 收藏项目将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 控制台输出 -->
+            <div class="section">
+                <h3>📝 调试信息</h3>
+                <button class="btn secondary" onclick="clearDebugLog()" style="margin-bottom: 10px;">清空日志</button>
+                <div id="debug-console" class="console"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="js/init-auth-manager.js"></script>
+    <script type="module" src="js/neon-auth.js"></script>
+    <script src="js/neon-favorites-global.js"></script>
+    <script src="js/fix-favorites.js"></script>
+    <script src="js/auth-status-fix.js"></script>
+
+    <script>
+        // 调试日志功能
+        const debugConsole = document.getElementById('debug-console');
+        
+        function debugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = {
+                info: '📝',
+                success: '✅',
+                error: '❌',
+                warning: '⚠️'
+            };
+            const colors = {
+                info: '#ffffff',
+                success: '#4ade80',
+                error: '#f87171',
+                warning: '#fbbf24'
+            };
+            
+            const icon = icons[type] || '📝';
+            const color = colors[type] || '#ffffff';
+            
+            debugConsole.innerHTML += `<span style="color: ${color}">[${timestamp}] ${icon} ${message}</span>\n`;
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            
+            console.log(message);
+        }
+        
+        function clearDebugLog() {
+            debugConsole.innerHTML = '';
+        }
+        
+        // 状态更新函数
+        function updateStatus(element, status, message) {
+            const statusElement = document.getElementById(element);
+            statusElement.className = `status-item ${status}`;
+            statusElement.querySelector('.value').textContent = message;
+        }
+        
+        // 系统检查函数
+        async function checkSystemStatus() {
+            debugLog('🚀 开始系统状态检查...');
+            
+            // 检查认证状态
+            const token = localStorage.getItem('neon_auth_token');
+            if (token) {
+                try {
+                    const response = await fetch('http://localhost:3000/api/auth/user', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateStatus('auth-status', 'success', '已登录');
+                        debugLog(`✅ 用户已登录: ${data.user.email}`, 'success');
+                    } else {
+                        throw new Error('认证失败');
+                    }
+                } catch (error) {
+                    updateStatus('auth-status', 'error', '认证失败');
+                    debugLog(`❌ 认证检查失败: ${error.message}`, 'error');
+                }
+            } else {
+                updateStatus('auth-status', 'error', '未登录');
+                debugLog('❌ 用户未登录', 'error');
+            }
+            
+            // 检查API服务
+            try {
+                const response = await fetch('http://localhost:3000/api/health');
+                if (response.ok) {
+                    updateStatus('api-status', 'success', '正常');
+                    debugLog('✅ API服务正常', 'success');
+                } else {
+                    throw new Error('API响应异常');
+                }
+            } catch (error) {
+                updateStatus('api-status', 'error', '异常');
+                debugLog(`❌ API服务异常: ${error.message}`, 'error');
+            }
+            
+            // 检查数据库连接
+            if (token) {
+                try {
+                    const response = await fetch('http://localhost:3000/api/favorites', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        updateStatus('db-status', 'success', '正常');
+                        debugLog('✅ 数据库连接正常', 'success');
+                    } else {
+                        throw new Error('数据库查询失败');
+                    }
+                } catch (error) {
+                    updateStatus('db-status', 'error', '异常');
+                    debugLog(`❌ 数据库连接异常: ${error.message}`, 'error');
+                }
+            }
+            
+            // 检查模块加载
+            checkModuleStatus();
+        }
+        
+        // 模块状态检查
+        function checkModuleStatus() {
+            const requiredFunctions = [
+                'loadFavsFromCloud',
+                'renderFavs',
+                'addFavToCloud',
+                'removeFav'
+            ];
+            
+            let loadedCount = 0;
+            let diagnosis = '';
+            
+            requiredFunctions.forEach(func => {
+                if (typeof window[func] === 'function') {
+                    loadedCount++;
+                    diagnosis += `✅ ${func} - 已加载\n`;
+                    debugLog(`✅ ${func} 函数已加载`, 'success');
+                } else {
+                    diagnosis += `❌ ${func} - 未加载\n`;
+                    debugLog(`❌ ${func} 函数未加载`, 'error');
+                }
+            });
+            
+            const percentage = Math.round((loadedCount / requiredFunctions.length) * 100);
+            
+            if (loadedCount === requiredFunctions.length) {
+                updateStatus('modules-status', 'success', '全部加载');
+            } else if (loadedCount > 0) {
+                updateStatus('modules-status', 'warning', `${percentage}% 加载`);
+            } else {
+                updateStatus('modules-status', 'error', '未加载');
+            }
+            
+            document.getElementById('module-diagnosis').innerHTML = `<pre>${diagnosis}</pre>`;
+        }
+        
+        // 测试函数
+        async function testLoadFavorites() {
+            debugLog('🧪 测试加载收藏功能...');
+            
+            if (typeof window.loadFavsFromCloud === 'function') {
+                try {
+                    const favorites = await window.loadFavsFromCloud();
+                    debugLog(`✅ 收藏加载成功，共 ${favorites ? favorites.length : 0} 项`, 'success');
+                    renderFavoritesDemo(favorites || []);
+                } catch (error) {
+                    debugLog(`❌ 收藏加载失败: ${error.message}`, 'error');
+                }
+            } else {
+                debugLog('❌ loadFavsFromCloud 函数不存在', 'error');
+            }
+        }
+        
+        async function testAddFavorite() {
+            debugLog('🧪 测试添加收藏功能...');
+            
+            const testFav = {
+                title: '测试网站',
+                url: 'https://example.com',
+                description: '这是一个测试收藏',
+                category: '测试'
+            };
+            
+            if (typeof window.addFavToCloud === 'function') {
+                try {
+                    const result = await window.addFavToCloud(testFav);
+                    if (result) {
+                        debugLog('✅ 测试收藏添加成功', 'success');
+                        // 重新加载收藏列表
+                        testLoadFavorites();
+                    } else {
+                        debugLog('❌ 测试收藏添加失败', 'error');
+                    }
+                } catch (error) {
+                    debugLog(`❌ 添加收藏异常: ${error.message}`, 'error');
+                }
+            } else {
+                debugLog('❌ addFavToCloud 函数不存在', 'error');
+            }
+        }
+        
+        function testDeleteFavorite() {
+            debugLog('🧪 删除收藏功能测试（仅检查函数存在性）');
+            
+            if (typeof window.removeFav === 'function') {
+                debugLog('✅ removeFav 函数存在', 'success');
+            } else {
+                debugLog('❌ removeFav 函数不存在', 'error');
+            }
+        }
+        
+        function forceReloadFavorites() {
+            debugLog('🔄 强制重新加载收藏功能...');
+            
+            // 强制刷新
+            if (typeof window.fixFavorites === 'function') {
+                window.fixFavorites();
+                debugLog('✅ 执行了收藏功能修复', 'success');
+            }
+            
+            if (typeof window.forceRefreshFavorites === 'function') {
+                window.forceRefreshFavorites();
+                debugLog('✅ 执行了强制刷新', 'success');
+            }
+            
+            // 重新检查状态
+            setTimeout(() => {
+                checkModuleStatus();
+                testLoadFavorites();
+            }, 2000);
+        }
+        
+        function fixAllProblems() {
+            debugLog('🔧 开始一键修复所有问题...');
+            
+            // 1. 重新定义核心函数
+            defineEssentialFunctions();
+            
+            // 2. 强制刷新
+            forceReloadFavorites();
+            
+            // 3. 重新检查
+            setTimeout(() => {
+                checkSystemStatus();
+                debugLog('🎉 一键修复完成！', 'success');
+            }, 3000);
+        }
+        
+        // 定义核心函数
+        function defineEssentialFunctions() {
+            debugLog('🔧 重新定义核心收藏功能...');
+            
+            // 定义 loadFavsFromCloud
+            if (typeof window.loadFavsFromCloud !== 'function') {
+                window.loadFavsFromCloud = async function() {
+                    const token = localStorage.getItem('neon_auth_token');
+                    if (!token) throw new Error('用户未登录');
+                    
+                    const response = await fetch('http://localhost:3000/api/favorites', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('获取收藏失败');
+                    
+                    const data = await response.json();
+                    if (!data.success) throw new Error(data.error || '获取收藏失败');
+                    
+                    return data.favorites;
+                };
+                debugLog('✅ loadFavsFromCloud 函数已重新定义', 'success');
+            }
+            
+            // 定义 renderFavs
+            if (typeof window.renderFavs !== 'function') {
+                window.renderFavs = function(favorites) {
+                    const favList = document.getElementById('fav-list');
+                    if (favList) {
+                        if (!favorites || favorites.length === 0) {
+                            favList.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">暂无收藏</div>';
+                        } else {
+                            favList.innerHTML = favorites.map(fav => `
+                                <div class="fav-item">
+                                    <img src="${fav.icon || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0Y3RjdGNyIvPgo8cGF0aCBkPSJNOCAxMkgyNFYxNEg4VjEyWk04IDE2SDI0VjE4SDhWMTZaIiBmaWxsPSIjQ0NDQ0NDIi8+Cjwvc3ZnPgo='}" alt="${fav.title}" class="fav-icon">
+                                    <div class="fav-content">
+                                        <div class="fav-title">${fav.title}</div>
+                                        <div class="fav-url">${fav.url}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                };
+                debugLog('✅ renderFavs 函数已重新定义', 'success');
+            }
+            
+            // 定义 addFavToCloud
+            if (typeof window.addFavToCloud !== 'function') {
+                window.addFavToCloud = async function(favoriteData) {
+                    const token = localStorage.getItem('neon_auth_token');
+                    if (!token) throw new Error('用户未登录');
+                    
+                    const response = await fetch('http://localhost:3000/api/favorites', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(favoriteData)
+                    });
+                    
+                    if (!response.ok) throw new Error('添加收藏失败');
+                    
+                    const data = await response.json();
+                    return data.success;
+                };
+                debugLog('✅ addFavToCloud 函数已重新定义', 'success');
+            }
+            
+            // 定义 removeFav
+            if (typeof window.removeFav !== 'function') {
+                window.removeFav = async function(favoriteId) {
+                    const token = localStorage.getItem('neon_auth_token');
+                    if (!token) throw new Error('用户未登录');
+                    
+                    const response = await fetch(`http://localhost:3000/api/favorites/${favoriteId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('删除收藏失败');
+                    
+                    const data = await response.json();
+                    return data.success;
+                };
+                debugLog('✅ removeFav 函数已重新定义', 'success');
+            }
+        }
+        
+        // 渲染收藏演示
+        function renderFavoritesDemo(favorites) {
+            if (typeof window.renderFavs === 'function') {
+                window.renderFavs(favorites);
+            }
+        }
+        
+        // 页面加载完成后开始检查
+        window.addEventListener('load', () => {
+            debugLog('🚀 调试页面已加载，开始系统检查...');
+            
+            setTimeout(() => {
+                checkSystemStatus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

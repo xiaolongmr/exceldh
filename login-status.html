@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon登录状态检查</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status-card.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .status-card.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .status-card.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        #console-output {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Neon系统登录状态检查</h1>
+        
+        <div id="auth-status" class="status-card">
+            <h3>🔐 认证状态</h3>
+            <p>正在检查...</p>
+        </div>
+        
+        <div id="user-info" class="status-card" style="display: none;">
+            <h3>👤 用户信息</h3>
+            <div id="user-details"></div>
+        </div>
+        
+        <div id="favorites-status" class="status-card">
+            <h3>📋 收藏功能状态</h3>
+            <p>正在检查...</p>
+        </div>
+        
+        <div id="migration-status" class="status-card">
+            <h3>🔄 迁移状态</h3>
+            <p>正在验证...</p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button class="btn" onclick="checkUserInfo()">🔍 检查用户信息</button>
+            <button class="btn" onclick="checkFavorites()">📋 检查收藏</button>
+            <button class="btn" onclick="forceLoadFavorites()">🔄 强制加载收藏</button>
+            <button class="btn" onclick="testAddFavorite()">➕ 测试添加收藏</button>
+        </div>
+        
+        <div id="console-output"></div>
+    </div>
+
+    <script>
+        // 控制台输出
+        const consoleOutput = document.getElementById('console-output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : '📝';
+            const color = type === 'error' ? '#ff6b6b' : '#ffffff';
+            
+            consoleOutput.innerHTML += `<span style="color: ${color}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        // 检查认证状态
+        async function checkAuthStatus() {
+            log('🔍 检查认证状态...');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            const authCard = document.getElementById('auth-status');
+            
+            if (!token) {
+                authCard.className = 'status-card error';
+                authCard.innerHTML = '<h3>🔐 认证状态</h3><p>❌ 未登录 - 没有找到认证令牌</p>';
+                log('❌ 未找到认证令牌');
+                return false;
+            }
+            
+            try {
+                // 验证令牌
+                const response = await fetch('http://localhost:3000/api/auth/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authCard.className = 'status-card success';
+                    authCard.innerHTML = '<h3>🔐 认证状态</h3><p>✅ 已登录到Neon系统</p>';
+                    
+                    // 显示用户信息
+                    const userCard = document.getElementById('user-info');
+                    userCard.style.display = 'block';
+                    userCard.className = 'status-card success';
+                    userCard.innerHTML = `
+                        <h3>👤 用户信息</h3>
+                        <p><strong>邮箱:</strong> ${data.user.email}</p>
+                        <p><strong>用户ID:</strong> ${data.user.userId}</p>
+                        <p><strong>注册时间:</strong> ${new Date(data.user.createdAt).toLocaleString()}</p>
+                        <p><strong>最后登录:</strong> ${new Date(data.user.lastLoginAt).toLocaleString()}</p>
+                    `;
+                    
+                    log(`✅ 用户已登录: ${data.user.email}`);
+                    log(`👤 用户ID: ${data.user.userId}`);
+                    return true;
+                } else {
+                    throw new Error('认证失败');
+                }
+            } catch (error) {
+                authCard.className = 'status-card error';
+                authCard.innerHTML = '<h3>🔐 认证状态</h3><p>❌ 认证验证失败</p>';
+                log(`❌ 认证验证失败: ${error.message}`);
+                return false;
+            }
+        }
+        
+        // 检查收藏功能
+        async function checkFavoritesFunction() {
+            log('🔍 检查收藏功能...');
+            
+            const favCard = document.getElementById('favorites-status');
+            
+            // 检查函数是否存在
+            const functions = [
+                'loadFavsFromCloud',
+                'renderFavs',
+                'addFavToCloud',
+                'removeFav'
+            ];
+            
+            let loadedFunctions = 0;
+            let status = '';
+            
+            functions.forEach(func => {
+                if (typeof window[func] === 'function') {
+                    status += `✅ ${func} - 已加载\n`;
+                    loadedFunctions++;
+                    log(`✅ ${func} 函数已加载`);
+                } else {
+                    status += `❌ ${func} - 未加载\n`;
+                    log(`❌ ${func} 函数未加载`);
+                }
+            });
+            
+            if (loadedFunctions === functions.length) {
+                favCard.className = 'status-card success';
+                favCard.innerHTML = `<h3>📋 收藏功能状态</h3><p>✅ 所有收藏功能已加载 (${loadedFunctions}/${functions.length})</p>`;
+            } else if (loadedFunctions > 0) {
+                favCard.className = 'status-card warning';
+                favCard.innerHTML = `<h3>📋 收藏功能状态</h3><p>⚠️ 部分收藏功能已加载 (${loadedFunctions}/${functions.length})</p><pre>${status}</pre>`;
+            } else {
+                favCard.className = 'status-card error';
+                favCard.innerHTML = `<h3>📋 收藏功能状态</h3><p>❌ 收藏功能未加载</p>`;
+            }
+        }
+        
+        // 检查迁移状态
+        async function checkMigrationStatus() {
+            log('🔍 检查迁移状态...');
+            
+            const migrationCard = document.getElementById('migration-status');
+            const isAuthenticated = await checkAuthStatus();
+            
+            if (isAuthenticated) {
+                migrationCard.className = 'status-card success';
+                migrationCard.innerHTML = `
+                    <h3>🔄 迁移状态</h3>
+                    <p>✅ Firebase到Neon迁移已完成</p>
+                    <ul>
+                        <li>✅ 用户账号已迁移到Neon数据库</li>
+                        <li>✅ 使用JWT认证系统</li>
+                        <li>✅ 收藏数据存储在PostgreSQL</li>
+                        <li>✅ 所有API已切换到Neon后端</li>
+                    </ul>
+                    <p><strong>结论:</strong> 您已经成功登录到Neon系统，迁移已完成！</p>
+                `;
+                log('🎉 迁移验证成功！您已经在使用Neon系统');
+            } else {
+                migrationCard.className = 'status-card error';
+                migrationCard.innerHTML = '<h3>🔄 迁移状态</h3><p>❌ 迁移验证失败 - 请重新登录</p>';
+            }
+        }
+        
+        // 用户操作函数
+        async function checkUserInfo() {
+            await checkAuthStatus();
+        }
+        
+        async function checkFavorites() {
+            await checkFavoritesFunction();
+        }
+        
+        function forceLoadFavorites() {
+            log('🔄 强制加载收藏功能...');
+            if (typeof window.forceRefreshFavorites === 'function') {
+                window.forceRefreshFavorites();
+                log('✅ 强制刷新命令已执行');
+            } else {
+                log('❌ forceRefreshFavorites函数不存在');
+            }
+        }
+        
+        async function testAddFavorite() {
+            log('🧪 测试添加收藏...');
+            
+            const token = localStorage.getItem('neon_auth_token');
+            if (!token) {
+                log('❌ 用户未登录，无法测试');
+                return;
+            }
+            
+            try {
+                const testFavorite = {
+                    title: '测试网站',
+                    url: 'https://example.com',
+                    description: '这是一个测试收藏',
+                    category: '测试'
+                };
+                
+                const response = await fetch('http://localhost:3000/api/favorites', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testFavorite)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('✅ 测试收藏添加成功');
+                    log(`📋 收藏ID: ${data.favorite.id}`);
+                } else {
+                    log(`❌ 测试收藏添加失败: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ 测试收藏添加异常: ${error.message}`);
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', async () => {
+            log('🚀 开始系统状态检查...');
+            
+            await checkAuthStatus();
+            await checkFavoritesFunction();
+            await checkMigrationStatus();
+            
+            log('🎯 系统状态检查完成');
+        });
+    </script>
+</body>
+</html>

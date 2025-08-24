@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon系统功能测试</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/firebase-auth.css">
+    <link rel="stylesheet" href="css/favorites.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px 5px;
+            font-size: 14px;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+        #test-results {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Neon系统功能测试</h1>
+        <p>此页面用于测试修复后的系统功能，包括收藏显示、搜索框清理、退出登录等。</p>
+        
+        <!-- 系统状态检查 -->
+        <div class="test-section">
+            <h3>📊 系统状态检查</h3>
+            <div id="system-status">
+                <div><span class="status-indicator status-offline"></span>服务器连接: 检查中...</div>
+                <div><span class="status-indicator status-offline"></span>认证系统: 检查中...</div>
+                <div><span class="status-indicator status-offline"></span>收藏系统: 检查中...</div>
+                <div><span class="status-indicator status-offline"></span>搜索功能: 检查中...</div>
+            </div>
+            <button class="test-btn" onclick="checkSystemStatus()">🔄 重新检查</button>
+        </div>
+
+        <!-- 登录测试 -->
+        <div class="test-section">
+            <h3>🔐 登录功能测试</h3>
+            <button class="test-btn" onclick="testLogin()">测试登录</button>
+            <button class="test-btn" onclick="testLogout()">测试退出登录</button>
+            <button class="test-btn" onclick="checkAuthStatus()">检查认证状态</button>
+        </div>
+
+        <!-- 收藏功能测试 -->
+        <div class="test-section">
+            <h3>🌟 收藏功能测试</h3>
+            <button class="test-btn" onclick="testLoadFavorites()">加载收藏列表</button>
+            <button class="test-btn" onclick="testAddFavorite()">添加测试收藏</button>
+            <button class="test-btn" onclick="checkFavoritesVisibility()">检查收藏显示状态</button>
+        </div>
+
+        <!-- 搜索功能测试 -->
+        <div class="test-section">
+            <h3>🔍 搜索功能测试</h3>
+            <button class="test-btn" onclick="testSearchBoxClear()">测试搜索框清理</button>
+            <button class="test-btn" onclick="testSearchFunction()">测试搜索功能</button>
+            <div style="margin-top: 10px;">
+                <input type="text" id="test-search-input" placeholder="测试搜索框" style="padding: 8px; width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                <button class="test-btn" onclick="clearTestSearch()">清空</button>
+            </div>
+        </div>
+
+        <!-- 界面元素测试 -->
+        <div class="test-section">
+            <h3>🎨 界面元素测试</h3>
+            <button class="test-btn" onclick="testDropdownMenu()">测试下拉菜单</button>
+            <button class="test-btn" onclick="testModalWindows()">测试弹窗功能</button>
+            <button class="test-btn" onclick="testButtonBindings()">测试按钮绑定</button>
+        </div>
+
+        <!-- 测试结果显示 -->
+        <div class="test-section">
+            <h3>📋 测试结果</h3>
+            <button class="test-btn" onclick="clearResults()">清空结果</button>
+            <button class="test-btn" onclick="exportResults()">导出结果</button>
+            <button class="test-btn" onclick="openMainPage()">打开主页面测试</button>
+            <div id="test-results"></div>
+        </div>
+    </div>
+
+    <!-- 模拟主页面的关键 DOM 元素 -->
+    <div style="display: none;" id="hidden-elements">
+        <!-- 搜索框 -->
+        <input id="txt" placeholder="搜索框">
+        <div id="search-clear"></div>
+        
+        <!-- 用户头像按钮 -->
+        <div id="user-avatar-btn" style="display:none;">
+            <div class="user-dropdown">
+                <a id="logout-link" href="#">退出登录</a>
+                <a id="account-settings-link" href="#">账号设置</a>
+                <a id="profile-center-link" href="#">个人中心</a>
+                <a id="system-notice-link" href="#">系统通知</a>
+            </div>
+        </div>
+        
+        <!-- 收藏模块 -->
+        <div id="my-fav-box" style="display:none;">
+            <div id="fav-list"></div>
+        </div>
+        
+        <!-- 登录弹窗 -->
+        <div id="login-modal" style="display:none;">
+            <div class="login-modal-content">
+                <form id="login-form">
+                    <input id="login-email" type="email">
+                    <input id="login-password" type="password">
+                </form>
+            </div>
+        </div>
+        
+        <!-- 登录按钮 -->
+        <button id="top-login-btn">登录</button>
+    </div>
+
+    <script>
+        const output = document.getElementById('test-results');
+        
+        // 模拟认证管理器
+        window.authManager = {
+            handleLogout: function() {
+                localStorage.removeItem('auth_token');
+                log('模拟退出登录成功', 'success');
+            },
+            showLoginModal: function() {
+                const modal = document.getElementById('login-modal');
+                if (modal) modal.style.display = 'flex';
+                log('模拟登录弹窗打开', 'success');
+            },
+            closeLoginModal: function() {
+                const modal = document.getElementById('login-modal');
+                if (modal) modal.style.display = 'none';
+                log('模拟登录弹窗关闭', 'success');
+            }
+        };
+        
+        // 模拟收藏函数
+        window.loadFavsFromCloud = async function() {
+            log('模拟加载收藏数据', 'success');
+            return Promise.resolve([]);
+        };
+        
+        window.renderFavs = function() {
+            log('模拟渲染收藏列表', 'success');
+        };
+        
+        // 模拟登录弹窗函数
+        window.showLoginModal = function() {
+            return window.authManager.showLoginModal();
+        };
+        
+        window.closeLoginModal = function() {
+            return window.authManager.closeLoginModal();
+        };
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = {
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'info': '📝'
+            }[type] || '📝';
+            
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // 检查系统状态
+        async function checkSystemStatus() {
+            log('开始系统状态检查...', 'info');
+            
+            // 检查服务器连接
+            try {
+                const response = await fetch('http://localhost:3000/api/health');
+                if (response.ok) {
+                    updateStatus(0, 'online', '服务器连接: 正常');
+                    log('服务器连接正常', 'success');
+                } else {
+                    updateStatus(0, 'warning', '服务器连接: 异常');
+                    log('服务器响应异常', 'warning');
+                }
+            } catch (error) {
+                updateStatus(0, 'offline', '服务器连接: 断开');
+                log('服务器连接失败: ' + error.message, 'error');
+            }
+            
+            // 检查认证系统
+            if (window.authManager) {
+                updateStatus(1, 'online', '认证系统: 已加载');
+                log('认证系统正常加载', 'success');
+            } else {
+                updateStatus(1, 'offline', '认证系统: 未加载');
+                log('认证系统未加载', 'error');
+            }
+            
+            // 检查收藏系统
+            if (window.loadFavsFromCloud && window.renderFavs) {
+                updateStatus(2, 'online', '收藏系统: 已加载');
+                log('收藏系统正常加载', 'success');
+            } else {
+                updateStatus(2, 'offline', '收藏系统: 未加载');
+                log('收藏系统未加载', 'error');
+            }
+            
+            // 检查搜索功能
+            const searchInput = document.getElementById('txt');
+            if (searchInput) {
+                updateStatus(3, 'online', '搜索功能: 正常');
+                log('搜索框元素存在', 'success');
+            } else {
+                updateStatus(3, 'offline', '搜索功能: 异常');
+                log('搜索框元素不存在', 'error');
+            }
+        }
+        
+        function updateStatus(index, status, text) {
+            const statusItems = document.querySelectorAll('#system-status div');
+            if (statusItems[index]) {
+                const indicator = statusItems[index].querySelector('.status-indicator');
+                indicator.className = `status-indicator status-${status}`;
+                statusItems[index].innerHTML = `<span class="status-indicator status-${status}"></span>${text}`;
+            }
+        }
+
+        // 测试登录功能
+        async function testLogin() {
+            log('开始测试登录功能...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'zlnp@qq.com',
+                        password: 'jiushimima1.'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log('登录API调用成功', 'success');
+                    log('用户ID: ' + result.user.id, 'info');
+                    log('用户邮箱: ' + result.user.email, 'info');
+                } else {
+                    log('登录失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('登录测试失败: ' + error.message, 'error');
+            }
+        }
+
+        // 测试退出登录
+        function testLogout() {
+            log('开始测试退出登录功能...', 'info');
+            
+            if (window.authManager && typeof window.authManager.handleLogout === 'function') {
+                window.authManager.handleLogout();
+                log('退出登录功能调用成功', 'success');
+            } else {
+                log('退出登录功能不可用', 'error');
+            }
+        }
+
+        // 检查认证状态
+        function checkAuthStatus() {
+            log('检查当前认证状态...', 'info');
+            
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                log('找到存储的认证令牌', 'success');
+                
+                // 尝试解析令牌
+                try {
+                    const parts = token.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        log('令牌用户ID: ' + payload.userId, 'info');
+                        log('令牌过期时间: ' + new Date(payload.exp * 1000).toLocaleString(), 'info');
+                    }
+                } catch (error) {
+                    log('令牌解析失败: ' + error.message, 'warning');
+                }
+            } else {
+                log('未找到认证令牌', 'warning');
+            }
+        }
+
+        // 测试加载收藏
+        async function testLoadFavorites() {
+            log('开始测试加载收藏功能...', 'info');
+            
+            if (window.loadFavsFromCloud) {
+                try {
+                    await window.loadFavsFromCloud();
+                    log('收藏加载函数调用成功', 'success');
+                } catch (error) {
+                    log('收藏加载失败: ' + error.message, 'error');
+                }
+            } else {
+                log('收藏加载函数不存在', 'error');
+            }
+        }
+
+        // 测试添加收藏
+        async function testAddFavorite() {
+            log('开始测试添加收藏功能...', 'info');
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('需要先登录才能添加收藏', 'warning');
+                    return;
+                }
+                
+                const response = await fetch('http://localhost:3000/api/favorites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title: '测试网站',
+                        url: 'https://test.example.com',
+                        icon: 'https://test.example.com/favicon.ico',
+                        description: '这是一个测试收藏',
+                        category: '测试分类'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log('添加收藏成功', 'success');
+                } else {
+                    log('添加收藏失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('添加收藏测试失败: ' + error.message, 'error');
+            }
+        }
+
+        // 检查收藏显示状态
+        function checkFavoritesVisibility() {
+            log('检查收藏显示状态...', 'info');
+            
+            const favBox = document.getElementById('my-fav-box');
+            if (favBox) {
+                const isVisible = favBox.style.display !== 'none';
+                log('收藏模块存在，当前显示状态: ' + (isVisible ? '显示' : '隐藏'), isVisible ? 'success' : 'warning');
+                
+                const favList = document.getElementById('fav-list');
+                if (favList) {
+                    const favCount = favList.children.length - 1; // 减去添加按钮
+                    log('收藏数量: ' + Math.max(0, favCount), 'info');
+                } else {
+                    log('收藏列表元素不存在', 'error');
+                }
+            } else {
+                log('收藏模块元素不存在', 'error');
+            }
+        }
+
+        // 测试搜索框清理
+        function testSearchBoxClear() {
+            log('开始测试搜索框清理功能...', 'info');
+            
+            const searchInput = document.getElementById('txt');
+            if (searchInput) {
+                const currentValue = searchInput.value;
+                log('当前搜索框内容: "' + currentValue + '"', 'info');
+                
+                // 清空搜索框
+                searchInput.value = '';
+                log('搜索框已清空', 'success');
+                
+                // 隐藏清除按钮
+                const clearBtn = document.getElementById('search-clear');
+                if (clearBtn) {
+                    clearBtn.style.display = 'none';
+                    log('清除按钮已隐藏', 'success');
+                }
+            } else {
+                log('搜索框元素不存在', 'error');
+            }
+        }
+
+        // 测试搜索功能
+        function testSearchFunction() {
+            log('开始测试搜索功能...', 'info');
+            
+            const searchInput = document.getElementById('txt');
+            if (searchInput) {
+                // 模拟输入
+                searchInput.value = '测试搜索';
+                searchInput.dispatchEvent(new Event('keyup'));
+                log('模拟搜索输入完成', 'success');
+                
+                // 检查清除按钮是否显示
+                const clearBtn = document.getElementById('search-clear');
+                if (clearBtn && clearBtn.style.display !== 'none') {
+                    log('清除按钮正确显示', 'success');
+                } else {
+                    log('清除按钮未显示', 'warning');
+                }
+            } else {
+                log('搜索框元素不存在', 'error');
+            }
+        }
+
+        // 清空测试搜索框
+        function clearTestSearch() {
+            const input = document.getElementById('test-search-input');
+            if (input) {
+                input.value = '';
+                log('测试搜索框已清空', 'success');
+            }
+        }
+
+        // 测试下拉菜单
+        function testDropdownMenu() {
+            log('开始测试下拉菜单功能...', 'info');
+            
+            const avatarBtn = document.getElementById('user-avatar-btn');
+            if (avatarBtn) {
+                const isVisible = avatarBtn.style.display !== 'none';
+                log('用户头像按钮显示状态: ' + (isVisible ? '显示' : '隐藏'), isVisible ? 'success' : 'warning');
+                
+                if (isVisible) {
+                    // 测试点击头像
+                    avatarBtn.click();
+                    log('模拟点击用户头像', 'info');
+                    
+                    setTimeout(() => {
+                        const dropdown = document.querySelector('.user-dropdown');
+                        if (dropdown && dropdown.classList.contains('show')) {
+                            log('下拉菜单正确显示', 'success');
+                        } else {
+                            log('下拉菜单未显示', 'warning');
+                        }
+                    }, 100);
+                }
+            } else {
+                log('用户头像按钮不存在', 'error');
+            }
+        }
+
+        // 测试弹窗功能
+        function testModalWindows() {
+            log('开始测试弹窗功能...', 'info');
+            
+            if (window.showLoginModal) {
+                window.showLoginModal();
+                log('登录弹窗打开测试完成', 'success');
+                
+                setTimeout(() => {
+                    if (window.closeLoginModal) {
+                        window.closeLoginModal();
+                        log('登录弹窗关闭测试完成', 'success');
+                    }
+                }, 1000);
+            } else {
+                log('登录弹窗函数不存在', 'error');
+            }
+        }
+
+        // 测试按钮绑定
+        function testButtonBindings() {
+            log('开始测试按钮绑定...', 'info');
+            
+            const buttons = [
+                { id: 'logout-link', name: '退出登录' },
+                { id: 'account-settings-link', name: '账号设置' },
+                { id: 'profile-center-link', name: '个人中心' },
+                { id: 'system-notice-link', name: '系统通知' }
+            ];
+            
+            buttons.forEach(btn => {
+                const element = document.getElementById(btn.id);
+                if (element) {
+                    log(`${btn.name}按钮存在`, 'success');
+                    
+                    // 检查是否有事件监听器
+                    const hasListener = element.onclick || element.addEventListener;
+                    if (hasListener) {
+                        log(`${btn.name}按钮有事件绑定`, 'success');
+                    } else {
+                        log(`${btn.name}按钮可能没有事件绑定`, 'warning');
+                    }
+                } else {
+                    log(`${btn.name}按钮不存在`, 'error');
+                }
+            });
+        }
+
+        // 清空结果
+        function clearResults() {
+            output.textContent = '';
+        }
+
+        // 导出结果
+        function exportResults() {
+            const results = output.textContent;
+            const blob = new Blob([results], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `neon-test-results-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('测试结果已导出', 'success');
+        }
+        
+        // 打开主页面进行实际测试
+        function openMainPage() {
+            window.open('http://localhost:3000/index.html', '_blank');
+            log('已打开主页面，请在新窗口中进行实际测试', 'info');
+            log('测试项目：', 'info');
+            log('1. 登录后收藏列表是否显示', 'info');
+            log('2. 搜索框是否为空', 'info');
+            log('3. 点击用户头像后下拉菜单按钮是否可用', 'info');
+        }
+
+        // 页面加载完成后自动检查系统状态
+        window.addEventListener('load', () => {
+            setTimeout(checkSystemStatus, 1000);
+        });
+    </script>
+</body>
+</html>

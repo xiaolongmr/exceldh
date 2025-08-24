@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能测试页面</title>
+    <link rel="stylesheet" href="css/favorites.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        #console-output {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Neon收藏系统功能测试</h1>
+        
+        <div class="test-section">
+            <h2>📊 系统状态检查</h2>
+            <div id="system-status">
+                <p>API服务器: <span id="api-status" class="status pending">检测中...</span></p>
+                <p>认证状态: <span id="auth-status" class="status pending">检测中...</span></p>
+                <p>数据库连接: <span id="db-status" class="status pending">检测中...</span></p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 功能模块测试</h2>
+            <div>
+                <button class="test-button" onclick="testLoadFavorites()">📋 测试加载收藏</button>
+                <button class="test-button" onclick="testLoadGroups()">📁 测试加载分组</button>
+                <button class="test-button" onclick="testIconUpload()">🖼️ 测试图标上传</button>
+                <button class="test-button" onclick="testCreateGroup()">➕ 测试创建分组</button>
+                <button class="test-button" onclick="testCreateShare()">🔗 测试创建分享</button>
+                <button class="test-button" onclick="testDeleteFavorite()">🗑️ 测试删除收藏</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 模拟收藏区域</h2>
+            <div class="my-fav-box">
+                <div class="my-fav-box-header">
+                    <div class="my-fav-box-title">
+                        <span class="my-fav-box-title-icon">🌟 我的收藏</span>
+                    </div>
+                    <div class="my-fav-box-actions">
+                        <button id="fav-custom-btn" class="my-fav-box-btn">
+                            <span>⚙️编辑</span>
+                        </button>
+                        <button id="share-btn" class="my-fav-box-btn" onclick="toggleSelectionMode()">
+                            <span>💰 分享收藏</span>
+                        </button>
+                        <button id="fav-batch-add-btn" class="my-fav-box-btn">
+                            <span>➡️ 本站数据</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 分组选项卡 -->
+                <div id="group-tabs-container" class="group-tabs">
+                    <!-- 分组选项卡将由JS动态生成 -->
+                </div>
+                
+                <!-- 分享控件 -->
+                <div id="share-controls" class="share-controls" style="display: none;">
+                    <!-- 分享控件将由JS动态生成 -->
+                </div>
+                
+                <div id="fav-list">
+                    <!-- 收藏项目将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 控制台输出</h2>
+            <div id="console-output"></div>
+            <button class="test-button" onclick="clearConsole()">清空控制台</button>
+        </div>
+    </div>
+
+    <!-- 模拟添加收藏表单 -->
+    <div id="fav-form-modal" style="display: none;">
+        <div class="modal-content">
+            <h3 class="modal-title">添加收藏</h3>
+            <div class="form-group">
+                <label>URL链接地址:</label>
+                <input id="fav-form-url" type="text" placeholder="完整链接或域名">
+                <button type="button" class="test-button" onclick="autoGetIcon()">自动获取</button>
+            </div>
+            <div class="form-group">
+                <label>网站名称:</label>
+                <input id="fav-form-title" type="text" placeholder="网站名称">
+            </div>
+            <div class="form-group">
+                <label>网站图标:</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <img id="icon-preview-img-html" src="" alt="预览" style="width:32px;height:32px;border-radius:8px;box-shadow:0 2px 8px #e0e0e0;object-fit:cover;">
+                    <input id="fav-form-icon" type="text" placeholder="填写图标的URL地址">
+                </div>
+                <div class="form-group">
+                    <button type="button" id="icon-upload-btn-html">点我本地上传</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>网站描述:</label>
+                <input id="fav-form-desc" type="text" placeholder="网站描述（可选）">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="test-button" onclick="closeFavForm()">取消</button>
+                <button type="button" class="test-button" onclick="confirmEditFavForm()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script>
+        // API基础配置
+        window.API_BASE_URL = 'http://localhost:3000/api';
+        
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : '📝';
+            const color = type === 'error' ? '#ff6b6b' : '#ffffff';
+            
+            consoleOutput.innerHTML += `<span style="color: ${color}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // 也输出到原始控制台
+            if (type === 'error') {
+                originalError(message);
+            } else {
+                originalLog(message);
+            }
+        }
+        
+        console.log = function(...args) {
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+        
+        // 系统状态检查
+        async function checkSystemStatus() {
+            console.log('🔍 开始系统状态检查...');
+            
+            // 检查API服务器
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    document.getElementById('api-status').textContent = '正常';
+                    document.getElementById('api-status').className = 'status success';
+                    console.log('✅ API服务器状态正常');
+                } else {
+                    throw new Error('API响应异常');
+                }
+            } catch (error) {
+                document.getElementById('api-status').textContent = '异常';
+                document.getElementById('api-status').className = 'status error';
+                console.error('❌ API服务器连接失败:', error.message);
+            }
+            
+            // 检查认证状态
+            const token = localStorage.getItem('neon_auth_token');
+            if (token) {
+                document.getElementById('auth-status').textContent = '已登录';
+                document.getElementById('auth-status').className = 'status success';
+                console.log('✅ 用户已认证');
+            } else {
+                document.getElementById('auth-status').textContent = '未登录';
+                document.getElementById('auth-status').className = 'status error';
+                console.log('⚠️ 用户未认证');
+            }
+            
+            // 检查数据库连接（通过获取收藏来测试）
+            try {
+                const response = await fetch(`${API_BASE_URL}/favorites`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById('db-status').textContent = '正常';
+                    document.getElementById('db-status').className = 'status success';
+                    console.log('✅ 数据库连接正常');
+                } else {
+                    throw new Error('数据库查询失败');
+                }
+            } catch (error) {
+                document.getElementById('db-status').textContent = '异常';
+                document.getElementById('db-status').className = 'status error';
+                console.error('❌ 数据库连接异常:', error.message);
+            }
+        }
+        
+        // 测试函数
+        async function testLoadFavorites() {
+            console.log('🧪 测试加载收藏功能...');
+            if (typeof window.loadFavsFromCloud === 'function') {
+                await window.loadFavsFromCloud();
+                console.log('✅ 收藏加载功能测试完成');
+            } else {
+                console.error('❌ loadFavsFromCloud函数不存在');
+            }
+        }
+        
+        async function testLoadGroups() {
+            console.log('🧪 测试加载分组功能...');
+            if (typeof window.loadFavoriteGroups === 'function') {
+                await window.loadFavoriteGroups();
+                console.log('✅ 分组加载功能测试完成');
+            } else {
+                console.error('❌ loadFavoriteGroups函数不存在');
+            }
+        }
+        
+        function testIconUpload() {
+            console.log('🧪 测试图标上传功能...');
+            if (typeof window.initIconUploadFeature === 'function') {
+                window.initIconUploadFeature();
+                console.log('✅ 图标上传功能初始化完成');
+            } else {
+                console.error('❌ initIconUploadFeature函数不存在');
+            }
+        }
+        
+        async function testCreateGroup() {
+            console.log('🧪 测试创建分组功能...');
+            if (typeof window.createFavoriteGroup === 'function') {
+                const result = await window.createFavoriteGroup('测试分组', '这是一个测试分组', '#ff6b6b');
+                console.log('✅ 分组创建功能测试完成:', result);
+            } else {
+                console.error('❌ createFavoriteGroup函数不存在');
+            }
+        }
+        
+        async function testCreateShare() {
+            console.log('🧪 测试创建分享功能...');
+            if (typeof window.createFavoriteShare === 'function') {
+                // 模拟选择一些收藏进行分享
+                const result = await window.createFavoriteShare('测试分享', '这是一个测试分享', [], null, 0);
+                console.log('✅ 分享创建功能测试完成:', result);
+            } else {
+                console.error('❌ createFavoriteShare函数不存在');
+            }
+        }
+        
+        function testDeleteFavorite() {
+            console.log('🧪 测试删除收藏功能...');
+            if (typeof window.removeFav === 'function') {
+                console.log('✅ 删除功能存在，但不执行真实删除');
+            } else {
+                console.error('❌ removeFav函数不存在');
+            }
+        }
+        
+        // 页面加载完成后检查系统状态
+        window.addEventListener('load', () => {
+            setTimeout(checkSystemStatus, 1000);
+        });
+    </script>
+    
+    <!-- 加载Neon系统 -->
+    <script type="module" src="js/neon-auth.js"></script>
+    <script src="js/neon-favorites-global.js"></script>
+    
+    <script>
+        console.log('🚀 测试页面已加载，等待系统初始化完成...');
+    </script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录功能测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f6fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .test-btn {
+            background: #3385ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .test-btn:hover {
+            background: #2968cc;
+        }
+        .test-btn.secondary {
+            background: #6c757d;
+        }
+        .test-btn.success {
+            background: #28a745;
+        }
+        .test-btn.danger {
+            background: #dc3545;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 20px 0;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+    </style>
+    
+    <!-- 引入Firebase认证样式 -->
+    <link rel="stylesheet" href="css/firebase-auth.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 登录功能测试与修复</h1>
+        <p>这个页面用于诊断和修复登录功能问题。</p>
+        
+        <div class="test-section">
+            <h3>🧪 快速测试</h3>
+            <button class="test-btn" onclick="testLoginButton()">测试登录按钮</button>
+            <button class="test-btn secondary" onclick="runDiagnostics()">运行完整诊断</button>
+            <button class="test-btn success" onclick="fixAndTest()">修复并测试</button>
+            <button class="test-btn danger" onclick="clearConsole()">清除日志</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 系统状态</h3>
+            <div id="system-status">
+                <div>
+                    <span class="status-indicator status-warning" id="server-status"></span>
+                    服务器连接: <span id="server-text">检查中...</span>
+                </div>
+                <div>
+                    <span class="status-indicator status-warning" id="auth-status"></span>
+                    认证系统: <span id="auth-text">检查中...</span>
+                </div>
+                <div>
+                    <span class="status-indicator status-warning" id="modal-status"></span>
+                    登录弹窗: <span id="modal-text">检查中...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 诊断日志</h3>
+            <div id="console-output" class="console-output">等待诊断结果...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 相关链接</h3>
+            <a href="index.html" target="_blank" class="test-btn">打开主页面</a>
+            <a href="test.html" target="_blank" class="test-btn secondary">打开系统测试</a>
+            <button class="test-btn success" onclick="window.location.reload()">刷新页面</button>
+        </div>
+    </div>
+
+    <!-- 登录弹窗结构 -->
+    <div id="top-login-btn">
+        <button class="top-login-btn-beauty" onclick="showLoginModal()" aria-label="登录">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10,17 15,12 10,7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            登录
+        </button>
+    </div>
+
+    <!-- 登录弹窗 -->
+    <div id="login-modal">
+        <div class="login-modal-content">
+            <h3 class="login-modal-title">用户登录</h3>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">邮箱</label>
+                    <input id="login-email" type="email" class="form-input" placeholder="邮箱">
+                    <div class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-password">密码</label>
+                    <div class="form-input-wrapper">
+                        <input id="login-password" type="password" class="form-input" placeholder="密码">
+                        <button type="button" class="toggle-password-visibility" aria-label="切换密码可见" tabindex="-1">
+                            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="form-error"></div>
+                </div>
+                <div class="remember-group">
+                    <label>
+                        <input type="checkbox" id="remember-password">
+                        记住密码
+                    </label>
+                </div>
+                <div class="login-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeLoginModal()">取消</button>
+                    <button id="login-btn" type="submit" class="btn btn-primary" data-original-text="登录">登录</button>
+                </div>
+                <div class="register-link">
+                    <a href="javascript:void(0);" onclick="alert('注册功能演示')">没有账号？立即注册</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 引入Neon认证系统 -->
+    <script type="module" src="js/neon-auth.js"></script>
+    
+    <!-- 调试脚本 -->
+    <script src="debug-login.js"></script>
+    
+    <script>
+        // 控制台输出重定向到页面
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function appendToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#feca57' : '#00ff00';
+            div.innerHTML = `[${timestamp}] ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, arguments);
+            appendToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, arguments);
+            appendToConsole(args.join(' '), 'error');
+        };
+        
+        // 测试函数
+        function testLoginButton() {
+            console.log('🧪 开始测试登录按钮...');
+            
+            const loginBtn = document.querySelector('.top-login-btn-beauty');
+            if (loginBtn) {
+                console.log('✅ 找到登录按钮');
+                try {
+                    loginBtn.click();
+                    console.log('✅ 登录按钮点击成功');
+                } catch (error) {
+                    console.error('❌ 登录按钮点击失败:', error.message);
+                }
+            } else {
+                console.error('❌ 找不到登录按钮');
+            }
+        }
+        
+        function runDiagnostics() {
+            console.log('🔧 开始运行诊断...');
+            if (window.runLoginDiagnostics) {
+                window.runLoginDiagnostics();
+            } else {
+                console.error('❌ 诊断函数未加载');
+            }
+        }
+        
+        function fixAndTest() {
+            console.log('🔧 开始修复和测试...');
+            
+            // 修复函数
+            if (window.fixLoginFunction) {
+                window.fixLoginFunction();
+            }
+            
+            // 延迟测试
+            setTimeout(() => {
+                testLoginButton();
+            }, 1000);
+        }
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+            console.log('📝 控制台已清除');
+        }
+        
+        // 状态检查
+        async function checkSystemStatus() {
+            // 检查服务器
+            try {
+                const response = await fetch('/api/health');
+                if (response.ok) {
+                    updateStatus('server', 'success', '正常');
+                } else {
+                    updateStatus('server', 'error', '错误');
+                }
+            } catch (error) {
+                updateStatus('server', 'error', '离线');
+            }
+            
+            // 检查认证系统
+            if (window.authManager) {
+                updateStatus('auth', 'success', '已加载');
+            } else {
+                updateStatus('auth', 'error', '未加载');
+            }
+            
+            // 检查弹窗
+            const modal = document.getElementById('login-modal');
+            if (modal) {
+                updateStatus('modal', 'success', '正常');
+            } else {
+                updateStatus('modal', 'error', '缺失');
+            }
+        }
+        
+        function updateStatus(type, status, text) {
+            const indicator = document.getElementById(`${type}-status`);
+            const textEl = document.getElementById(`${type}-text`);
+            
+            indicator.className = `status-indicator status-${status}`;
+            textEl.textContent = text;
+        }
+        
+        // 页面加载完成后检查状态
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 登录测试页面已加载');
+            setTimeout(checkSystemStatus, 1000);
+        });
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('💥 JavaScript错误:', event.error.message);
+        });
+    </script>
+</body>
+</html>
